@@ -1,65 +1,130 @@
-import Image from "next/image";
+'use client'
+
+import { useActionState, useReducer, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import MetricCard from '@/components/MetricCard'
+import { FormFactor, FormFactorType } from '@/actions/types'
+import { Search } from 'lucide-react'
+import { getPageInsights } from '@/actions/crux'
+import { Metric } from '@/lib/helpers'
+
+type PageInsightsForm = {
+  url: string
+  formFactor: FormFactorType
+}
+
+type FormAction = Partial<PageInsightsForm>
+
+const formReducer = (
+  state: PageInsightsForm,
+  action: FormAction
+): PageInsightsForm => {
+  return {
+    ...state,
+    ...action,
+  }
+}
 
 export default function Home() {
+  const [result, actionState, isPending] = useActionState<
+    [Metric[] | null, Error | null],
+    FormData
+  >(getPageInsights, [null, null])
+  const [data, error] = result
+  const [form, dispatch] = useReducer(formReducer, {
+    url: '',
+    formFactor: FormFactor.DESKTOP,
+  })
+
+  const handleSubmit = (formData: FormData) => {
+    actionState(formData)
+  }
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <main className="container mx-auto p-4 md:p-8">
+      <div className="max-w-4xl mx-auto">
+        <header className="text-center mb-8">
+          <h1 className="text-4xl font-bold tracking-tight mb-2">
+            Web Vitals Report
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-lg text-muted-foreground">
+            Enter a URL to get the latest Core Web Vitals report from the Chrome
+            UX Report (CrUX).
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+        </header>
+
+        <form
+          action={handleSubmit}
+          className="flex flex-col w-full space-y-4 mb-8"
+        >
+          <div className="flex items-center space-x-2">
+            <Input type="hidden" name="formFactor" value={form.formFactor} />
+            <Input
+              type="url"
+              name="url"
+              placeholder="https://example.com"
+              required
+              value={form.url}
+              onChange={(e) => dispatch({ url: e.target.value })}
+              className="flex-1"
+              disabled={isPending}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
-  );
+            <Button disabled={isPending}>
+              {isPending ? (
+                'Loading...'
+              ) : (
+                <>
+                  <Search className="h-4 w-4 mr-2" />
+                  Search
+                </>
+              )}
+            </Button>
+          </div>
+          <div className="flex justify-center items-center space-x-2">
+            <Button
+              onClick={() => dispatch({ formFactor: FormFactor.DESKTOP })}
+              variant={
+                form.formFactor === FormFactor.DESKTOP ? 'default' : 'outline'
+              }
+              disabled={isPending}
+            >
+              Desktop
+            </Button>
+            <Button
+              onClick={() => dispatch({ formFactor: FormFactor.PHONE })}
+              variant={
+                form.formFactor === FormFactor.PHONE ? 'default' : 'outline'
+              }
+              disabled={isPending}
+            >
+              Phone
+            </Button>
+            <Button
+              onClick={() => dispatch({ formFactor: FormFactor.TABLET })}
+              variant={
+                form.formFactor === FormFactor.TABLET ? 'default' : 'outline'
+              }
+              disabled={isPending}
+            >
+              Tablet
+            </Button>
+          </div>
+        </form>
+
+        {error && <p className="text-red-500 text-center">{error.message}</p>}
+
+        {data && (
+          <div>
+            <h2 className="text-2xl font-semibold mb-4">Core Web Vitals</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {data.map((metric, index) => (
+                <MetricCard key={index} metric={metric} />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </main>
+  )
 }
