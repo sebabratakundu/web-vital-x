@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import {
   Table,
   TableBody,
@@ -5,12 +6,12 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
+} from './ui/table'
 import { Metric } from '@/types'
 import { Folder, Info } from 'lucide-react'
-import Link from 'next/link'
-import { Button } from './ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
+import { Fragment } from 'react'
+import { MetricTitle } from './MetricTitle'
 
 const statusColorMap: Record<Metric['status'], string> = {
   Good: 'bg-green-100 dark:bg-green-900',
@@ -19,10 +20,10 @@ const statusColorMap: Record<Metric['status'], string> = {
 }
 
 interface DataTableProps {
-  metrics: Metric[]
+  insights: { [key: string]: Metric[] }
 }
 
-export default function DataTable({ metrics }: DataTableProps) {
+export default function DataTable({ insights }: DataTableProps) {
   return (
     <Table border={1}>
       <TableHeader>
@@ -47,7 +48,7 @@ export default function DataTable({ metrics }: DataTableProps) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {metrics.length === 0 && (
+        {Object.values(insights).length === 0 && (
           <TableRow>
             <TableCell colSpan={3}>
               <div className="flex flex-col items-center justify-center py-10">
@@ -57,26 +58,36 @@ export default function DataTable({ metrics }: DataTableProps) {
             </TableCell>
           </TableRow>
         )}
-        {metrics.map((metric) => (
-          <TableRow key={metric.name} className={statusColorMap[metric.status]}>
-            <TableCell>
-              <div className="flex items-center gap-2">
-                <span className="capitalize">{metric.name}</span>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Link href={metric.link} target="_blank">
-                      <Info className="h-4 w-4" />
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-64 text-pretty">
-                    <p>{metric.description}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </div>
-            </TableCell>
-            <TableCell>{metric.value}</TableCell>
-            <TableCell>{metric.status}</TableCell>
-          </TableRow>
+        {Object.entries(insights).map(([key, metrics]) => (
+          <Fragment key={key}>
+            <TableRow>
+              <TableHead colSpan={3}>URL: {key}</TableHead>
+            </TableRow>
+            {metrics.map((metric) => (
+              <TableRow
+                key={metric.value}
+                className={statusColorMap[metric.status]}
+              >
+                <TableCell>
+                  <div className="flex items-center gap-2">
+                    <MetricTitle metric={metric} />
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Link href={metric.link} target="_blank">
+                          <Info className="h-4 w-4" />
+                        </Link>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-64 text-pretty">
+                        <p>{metric.description}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </TableCell>
+                <TableCell>{metric.value}ms</TableCell>
+                <TableCell>{metric.status}</TableCell>
+              </TableRow>
+            ))}
+          </Fragment>
         ))}
       </TableBody>
     </Table>

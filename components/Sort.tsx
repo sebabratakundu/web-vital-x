@@ -1,9 +1,5 @@
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
-import { Button } from '@/components/ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover'
+import { Button } from './ui/button'
 import {
   Command,
   CommandEmpty,
@@ -11,9 +7,8 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from '@/components/ui/command'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Label } from '@/components/ui/label'
+} from './ui/command'
+
 import { Check, ChevronsUpDown } from 'lucide-react'
 import { Dispatch, SetStateAction, useState } from 'react'
 import { cn } from '@/lib/utils'

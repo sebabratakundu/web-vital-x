@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState, useMemo, useReducer, useState } from 'react'
+import { useActionState, useEffect, useMemo, useReducer, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import DataTable from '@/components/DataTable'
 import { Filter } from '@/components/Filter'
@@ -11,18 +11,20 @@ import {
   Status,
   StatusWeightRank,
   Metric,
-  StatusType,
+  AllowedMetrics,
+  CollectionPeriod as CollectionPeriodType,
+  PageInsightsForm,
+  FormAction,
 } from '@/types'
-import { Search } from 'lucide-react'
+import { Loader2, Search } from 'lucide-react'
 import { getPageInsights } from '@/actions/crux'
 import { Sort } from '@/components/Sort'
+import { Textarea } from '@/components/ui/textarea'
+import { toast } from 'sonner'
+import { getValidFormFactor, getValidUrls } from '@/lib/helpers'
 
-type PageInsightsForm = {
-  url: string
-  formFactor: FormFactorType
-}
-
-type FormAction = Partial<PageInsightsForm>
+import { CollectionPeriod } from '@/components/CollectionPeriod'
+import { DeviceFilter } from '@/components/DeviceFilter'
 
 const formReducer = (
   state: PageInsightsForm,
@@ -39,127 +41,175 @@ const statusOptions = Object.values(Status).map((status) => ({
   label: status,
 }))
 
-const deviceOptions = Object.values(FormFactor)
+const metricOptions = Object.values(AllowedMetrics).map((metric) => ({
+  value: metric.value,
+  label: metric.name,
+}))
 
 export default function Home() {
   const [result, actionState, isPending] = useActionState<
-    [Metric[] | null, Error | null],
+    {
+      [key: string]: [
+        { metrics: Metric[]; collectionPeriod: CollectionPeriodType } | null,
+        { message: string } | null,
+      ]
+    },
     FormData
-  >(getPageInsights, [null, null])
-  const [data, error] = result
-  const [selectedMetrics, setSelectedMetrics] = useState<Metric['name'][]>([])
+  >(getPageInsights, {})
+
+  const [selectedMetrics, setSelectedMetrics] = useState<Metric['id'][]>([])
   const [selectedStatus, setSelectedStatus] = useState<string[]>([])
   const [selectedSort, setSelectedSort] = useState<string>('')
   const [form, dispatch] = useReducer(formReducer, {
-    url: '',
+    urls: '',
     formFactor: FormFactor.DESKTOP,
   })
 
   const handleSubmit = (formData: FormData) => {
+    const urls = getValidUrls(formData.get('urls') as string)
+    const formFactor = getValidFormFactor(formData.get('formFactor') as string)
+
+    if (urls.length === 0 || !formFactor) {
+      toast.error('Invalid form data')
+      return
+    }
+
     actionState(formData)
   }
 
-  const matricFilterOptions = useMemo(
+  const collectionPeriod = useMemo(() => {
+    return Object.entries(result).reduce(
+      (acc, [key, [metrics, error]]) => {
+        if (metrics) {
+          acc[key] = metrics.collectionPeriod
+        }
+        return acc
+      },
+      {} as { [key: string]: CollectionPeriodType }
+    )
+  }, [result])
+
+  const errors = useMemo(
     () =>
-      data?.map((metric) => ({
-        value: metric.name,
-        label: metric.name,
-      })) || [],
-    [data]
+      Object.entries(result).reduce(
+        (acc, [key, [metrics, error]]) => {
+          if (error) {
+            acc[key] = error
+          }
+          return acc
+        },
+        {} as { [key: string]: { message: string } }
+      ),
+    [result]
   )
 
-  const filteredData = useMemo(() => {
-    if (!data) {
-      return []
-    }
-
-    let matrics = data.filter(
-      (metric) =>
-        (selectedMetrics.length === 0 ||
-          selectedMetrics.includes(metric.name)) &&
-        (selectedStatus.length === 0 || selectedStatus.includes(metric.status))
-    )
-
-    if (selectedSort) {
-      matrics = matrics.toSorted((a, b) => {
-        if (a.status === selectedSort && b.status !== selectedSort) {
-          return -1
-        }
-
-        if (a.status !== selectedSort && b.status === selectedSort) {
-          return 1
-        }
-
-        return StatusWeightRank[a.status] - StatusWeightRank[b.status]
+  useEffect(() => {
+    if (!!errors) {
+      Object.entries(errors).forEach(([key, error]) => {
+        toast.error(`${key}: ${error.message}`, {
+          id: key,
+        })
       })
     }
+  }, [errors])
 
-    return matrics
-  }, [data, selectedMetrics, selectedStatus, selectedSort])
+  const filteredData = useMemo(() => {
+    return Object.entries(result).reduce(
+      (acc, [key, [metrics, error]]) => {
+        if (!!metrics) {
+          let filteredMetrics = metrics.metrics.filter(
+            (metric) =>
+              (selectedMetrics.length === 0 ||
+                selectedMetrics.includes(metric.id)) &&
+              (selectedStatus.length === 0 ||
+                selectedStatus.includes(metric.status))
+          )
+
+          if (selectedSort) {
+            filteredMetrics = filteredMetrics.toSorted((a, b) => {
+              if (a.status === selectedSort && b.status !== selectedSort) {
+                return -1
+              }
+
+              if (a.status !== selectedSort && b.status === selectedSort) {
+                return 1
+              }
+
+              return StatusWeightRank[a.status] - StatusWeightRank[b.status]
+            })
+          }
+
+          acc[key] = filteredMetrics
+        }
+
+        return acc
+      },
+      {} as { [key: string]: Metric[] }
+    )
+  }, [result, selectedMetrics, selectedStatus, selectedSort])
 
   return (
-    <main className="container mx-auto p-4 md:p-8">
-      <div className="max-w-4xl mx-auto">
+    <main className="flex-1 flex flex-col items-center justify-center p-4 md:p-8">
+      <div className="absolute inset-0 -z-10 h-full w-full bg-background bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:14px_24px]">
+        <div className="absolute left-0 right-0 top-0 -z-10 m-auto h-[310px] w-[310px] rounded-full bg-fuchsia-400 opacity-20 blur-[100px]"></div>
+      </div>
+      <div className="max-w-4xl w-full mx-auto">
         <header className="text-center mb-8">
-          <h1 className="text-4xl font-bold tracking-tight mb-2">
-            Web Vitals Report
+          <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
+            Check your Core Web Vitals
           </h1>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-lg text-muted-foreground mt-4">
             Enter a URL to get the latest Core Web Vitals report from the Chrome
             UX Report (CrUX).
           </p>
         </header>
 
-        <form
-          action={handleSubmit}
-          className="flex flex-col w-full space-y-4 mb-8"
-        >
-          <div className="flex items-center space-x-2">
-            <Input type="hidden" name="formFactor" value={form.formFactor} />
-            <Input
-              type="url"
-              name="url"
-              placeholder="https://example.com"
+        <form action={handleSubmit} className="w-full space-y-4 mb-4">
+          <div className="grid w-full gap-2">
+            <Textarea
+              name="urls"
+              placeholder="https://example.com, https://google.com"
               required
-              value={form.url}
-              onChange={(e) => dispatch({ url: e.target.value })}
-              className="flex-1"
+              value={form.urls}
+              onChange={(e) => dispatch({ urls: e.target.value })}
+              className="flex-1 min-h-[100px]"
               disabled={isPending}
             />
-            <Button disabled={isPending}>
+            <Input type="hidden" name="formFactor" value={form.formFactor} />
+          </div>
+          <div className="flex justify-between items-center">
+            <div className="flex items-center space-x-2">
+              <DeviceFilter
+                form={form}
+                dispatch={dispatch}
+                isPending={isPending}
+              />
+            </div>
+            <Button disabled={isPending} size={'lg'}>
               {isPending ? (
-                'Loading...'
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Analyzing
+                </>
               ) : (
                 <>
-                  <Search className="h-4 w-4" />
+                  <Search className="mr-2 h-4 w-4" />
                   Analyze
                 </>
               )}
             </Button>
           </div>
-          <div className="flex justify-center items-center space-x-2">
-            {deviceOptions.map((device) => (
-              <Button
-                key={device}
-                onClick={() => dispatch({ formFactor: device })}
-                variant={form.formFactor === device ? 'default' : 'outline'}
-                disabled={isPending}
-              >
-                <span className="capitalize">{device.toLowerCase()}</span>
-              </Button>
-            ))}
-          </div>
         </form>
 
-        {error && <p className="text-red-500 text-center">{error.message}</p>}
+        <CollectionPeriod collectionPeriod={collectionPeriod} />
 
         <div className="space-y-4">
-          <div className="flex md:flex-row flex-col md:justify-between md:items-center items-start md:space-x-2 space-y-2 md:space-y-0">
+          <div className="flex md:flex-row flex-col md:justify-between md:items-center items-start md:space-x-2 space-y-2 md:space-y-0 p-4 border rounded-lg">
             <div className="flex items-center space-x-2">
               <p className="text-center">Filters</p>
               <Filter
                 title="Metrics"
-                options={matricFilterOptions}
+                options={metricOptions}
                 selected={selectedMetrics}
                 onChange={setSelectedMetrics}
               />
@@ -180,7 +230,7 @@ export default function Home() {
               />
             </div>
           </div>
-          <DataTable metrics={filteredData} />
+          <DataTable insights={filteredData} />
         </div>
       </div>
     </main>

@@ -3,7 +3,7 @@
 import { Dispatch, SetStateAction, useState } from 'react'
 import { ChevronsUpDown } from 'lucide-react'
 
-import { Button } from '@/components/ui/button'
+import { Button } from './ui/button'
 import {
   Command,
   CommandEmpty,
@@ -11,14 +11,10 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from '@/components/ui/command'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Label } from '@/components/ui/label'
+} from './ui/command'
+import { Popover, PopoverContent, PopoverTrigger } from './ui/popover'
+import { Checkbox } from './ui/checkbox'
+import { Label } from './ui/label'
 
 export type Option = {
   value: string
