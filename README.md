@@ -1,36 +1,64 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Web Report X
+
+Web Report X is a tool to analyze and report Core Web Vitals metrics for any public website. It leverages the Chrome UX Report (CrUX) API to provide real-user experience data.
+
+## Features
+
+- **Core Web Vitals Analysis**: Get detailed metrics on LCP, FID, and CLS.
+- **Multiple URL Support**: Analyze single or multiple URLs at once.
+- **Device-Specific Reports**: Filter reports by desktop or mobile form factors.
+- **Data Filtering and Sorting**: Easily filter and sort the results to identify key performance issues.
+
+## Technologies Used
+
+- **Next.js**: A React framework for building server-side rendered and static web applications.
+- **TypeScript**: A typed superset of JavaScript that enhances code quality and maintainability.
+- **Tailwind CSS**: A utility-first CSS framework for rapid UI development.
+- **CrUX API**: Provides real-user measurement data from Chrome.
 
 ## Getting Started
 
-First, run the development server:
+To get a local copy up and running, follow these simple steps.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+### Prerequisites
+
+- Node.js (v20 or later)
+- pnpm
+
+### Installation
+
+1. Clone the repo:
+   ```sh
+   git clone https://github.com/your_username/web-report-x.git
+   ```
+2. Install NPM packages:
+   ```sh
+   pnpm install
+   ```
+
+### Environment Variables
+
+Create a `.env.local` file in the root of your project and add the following environment variables:
+
+```
+GOOGLE_CRUX_API_KEY="Your-CrUX-API-Key"
+GOOGLE_CRUX_API_ENDPOINT="https://chromeuxreport.googleapis.com/v1/records:queryRecord"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Running the Application
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+To run the app in development mode, use:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```sh
+pnpm dev
+```
 
-## Learn More
+Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
 
-To learn more about Next.js, take a look at the following resources:
+## Available Scripts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `pnpm dev`: Runs the app in development mode.
+- `pnpm build`: Builds the app for production.
+- `pnpm start`: Starts a production server.
+- `pnpm lint`: Lints the codebase for errors.
