@@ -1,13 +1,21 @@
 'use client'
 
-import { useActionState, useReducer, useState } from 'react'
+import { useActionState, useMemo, useReducer, useState } from 'react'
 import { Button } from '@/components/ui/button'
+import DataTable from '@/components/DataTable'
+import { Filter } from '@/components/Filter'
 import { Input } from '@/components/ui/input'
-import MetricCard from '@/components/MetricCard'
-import { FormFactor, FormFactorType } from '@/actions/types'
+import {
+  FormFactor,
+  FormFactorType,
+  Status,
+  StatusWeightRank,
+  Metric,
+  StatusType,
+} from '@/types'
 import { Search } from 'lucide-react'
 import { getPageInsights } from '@/actions/crux'
-import { Metric } from '@/lib/helpers'
+import { Sort } from '@/components/Sort'
 
 type PageInsightsForm = {
   url: string
@@ -26,12 +34,22 @@ const formReducer = (
   }
 }
 
+const statusOptions = Object.values(Status).map((status) => ({
+  value: status,
+  label: status,
+}))
+
+const deviceOptions = Object.values(FormFactor)
+
 export default function Home() {
   const [result, actionState, isPending] = useActionState<
     [Metric[] | null, Error | null],
     FormData
   >(getPageInsights, [null, null])
   const [data, error] = result
+  const [selectedMetrics, setSelectedMetrics] = useState<Metric['name'][]>([])
+  const [selectedStatus, setSelectedStatus] = useState<string[]>([])
+  const [selectedSort, setSelectedSort] = useState<string>('')
   const [form, dispatch] = useReducer(formReducer, {
     url: '',
     formFactor: FormFactor.DESKTOP,
@@ -40,6 +58,44 @@ export default function Home() {
   const handleSubmit = (formData: FormData) => {
     actionState(formData)
   }
+
+  const matricFilterOptions = useMemo(
+    () =>
+      data?.map((metric) => ({
+        value: metric.name,
+        label: metric.name,
+      })) || [],
+    [data]
+  )
+
+  const filteredData = useMemo(() => {
+    if (!data) {
+      return []
+    }
+
+    let matrics = data.filter(
+      (metric) =>
+        (selectedMetrics.length === 0 ||
+          selectedMetrics.includes(metric.name)) &&
+        (selectedStatus.length === 0 || selectedStatus.includes(metric.status))
+    )
+
+    if (selectedSort) {
+      matrics = matrics.toSorted((a, b) => {
+        if (a.status === selectedSort && b.status !== selectedSort) {
+          return -1
+        }
+
+        if (a.status !== selectedSort && b.status === selectedSort) {
+          return 1
+        }
+
+        return StatusWeightRank[a.status] - StatusWeightRank[b.status]
+      })
+    }
+
+    return matrics
+  }, [data, selectedMetrics, selectedStatus, selectedSort])
 
   return (
     <main className="container mx-auto p-4 md:p-8">
@@ -75,55 +131,57 @@ export default function Home() {
                 'Loading...'
               ) : (
                 <>
-                  <Search className="h-4 w-4 mr-2" />
-                  Search
+                  <Search className="h-4 w-4" />
+                  Analyze
                 </>
               )}
             </Button>
           </div>
           <div className="flex justify-center items-center space-x-2">
-            <Button
-              onClick={() => dispatch({ formFactor: FormFactor.DESKTOP })}
-              variant={
-                form.formFactor === FormFactor.DESKTOP ? 'default' : 'outline'
-              }
-              disabled={isPending}
-            >
-              Desktop
-            </Button>
-            <Button
-              onClick={() => dispatch({ formFactor: FormFactor.PHONE })}
-              variant={
-                form.formFactor === FormFactor.PHONE ? 'default' : 'outline'
-              }
-              disabled={isPending}
-            >
-              Phone
-            </Button>
-            <Button
-              onClick={() => dispatch({ formFactor: FormFactor.TABLET })}
-              variant={
-                form.formFactor === FormFactor.TABLET ? 'default' : 'outline'
-              }
-              disabled={isPending}
-            >
-              Tablet
-            </Button>
+            {deviceOptions.map((device) => (
+              <Button
+                key={device}
+                onClick={() => dispatch({ formFactor: device })}
+                variant={form.formFactor === device ? 'default' : 'outline'}
+                disabled={isPending}
+              >
+                <span className="capitalize">{device.toLowerCase()}</span>
+              </Button>
+            ))}
           </div>
         </form>
 
         {error && <p className="text-red-500 text-center">{error.message}</p>}
 
-        {data && (
-          <div>
-            <h2 className="text-2xl font-semibold mb-4">Core Web Vitals</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {data.map((metric, index) => (
-                <MetricCard key={index} metric={metric} />
-              ))}
+        <div className="space-y-4">
+          <div className="flex md:flex-row flex-col md:justify-between md:items-center items-start md:space-x-2 space-y-2 md:space-y-0">
+            <div className="flex items-center space-x-2">
+              <p className="text-center">Filters</p>
+              <Filter
+                title="Metrics"
+                options={matricFilterOptions}
+                selected={selectedMetrics}
+                onChange={setSelectedMetrics}
+              />
+              <Filter
+                title="Status"
+                options={statusOptions}
+                selected={selectedStatus}
+                onChange={setSelectedStatus}
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <p className="text-center">Sort by</p>
+              <Sort
+                title="Status"
+                options={statusOptions}
+                selected={selectedSort}
+                onChange={setSelectedSort}
+              />
             </div>
           </div>
-        )}
+          <DataTable metrics={filteredData} />
+        </div>
       </div>
     </main>
   )

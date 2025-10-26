@@ -1,54 +1,48 @@
-import { AllowedMetrics, Record } from '@/actions/types'
+import {
+  AllowedMetrics,
+  Record,
+  Metric,
+  Status,
+  StatusType,
+  LCP_THRESHOLDS,
+  INP_THRESHOLDS,
+  CLS_THRESHOLDS,
+  FCP_THRESHOLDS,
+  TTFB_THRESHOLDS,
+} from '@/types'
 
-export interface Metric {
-  name: string
-  description: string
-  link: string
-  value: string | number
-  status: 'Good' | 'Needs Improvement' | 'Poor'
-  distributions: {
-    name: 'Good' | 'Needs Improvement' | 'Poor'
-    percentage: number
-  }[]
-}
-
-const LCP_THRESHOLDS = { good: 2500, poor: 4000 }
-const INP_THRESHOLDS = { good: 200, poor: 500 }
-const CLS_THRESHOLDS = { good: 0.1, poor: 0.25 }
-const FCP_THRESHOLDS = { good: 1800, poor: 2000 }
-const TTFB_THRESHOLDS = { good: 800, poor: 1200 }
 
 const getStatus = (
   value: number,
   thresholds: { good: number; poor: number }
-): 'Good' | 'Needs Improvement' | 'Poor' => {
-  if (value <= thresholds.good) return 'Good'
-  if (value <= thresholds.poor) return 'Needs Improvement'
-  return 'Poor'
+): StatusType => {
+  if (value <= thresholds.good) return Status.GOOD
+  if (value <= thresholds.poor) return Status.NEEDS_IMPROVEMENT
+  return Status.POOR
 }
 
 const formatDistributions = (
   distributions: any[]
-): { name: 'Good' | 'Needs Improvement' | 'Poor'; percentage: number }[] => {
+): { name: StatusType; percentage: number }[] => {
   const total = distributions.reduce((acc, bin) => acc + (bin.density || 0), 0)
   if (total === 0) {
     return [
-      { name: 'Good', percentage: 0 },
-      { name: 'Needs Improvement', percentage: 0 },
-      { name: 'Poor', percentage: 0 },
+      { name: Status.GOOD, percentage: 0 },
+      { name: Status.NEEDS_IMPROVEMENT, percentage: 0 },
+      { name: Status.POOR, percentage: 0 },
     ]
   }
   return [
     {
-      name: 'Good' as const,
+      name: Status.GOOD,
       percentage: (distributions[0].density || 0) * 100,
     },
     {
-      name: 'Needs Improvement' as const,
+      name: Status.NEEDS_IMPROVEMENT,
       percentage: (distributions[1].density || 0) * 100,
     },
     {
-      name: 'Poor' as const,
+      name: Status.POOR,
       percentage: (distributions[2].density || 0) * 100,
     },
   ]
@@ -56,15 +50,15 @@ const formatDistributions = (
 
 const getThresholds = (webVitalKey: string): { good: number; poor: number } => {
   switch (webVitalKey) {
-    case 'largest_contentful_paint':
+    case AllowedMetrics.LARGEST_CONTENTFUL_PAINT.name:
       return LCP_THRESHOLDS
-    case 'interaction_to_next_paint':
+    case AllowedMetrics.INTERACTION_TO_NEXT_PAINT.name:
       return INP_THRESHOLDS
-    case 'cumulative_layout_shift':
+    case AllowedMetrics.CUMULATIVE_LAYOUT_SHIFT.name:
       return CLS_THRESHOLDS
-    case 'first_contentful_paint':
+    case AllowedMetrics.FIRST_CONTENTFUL_PAINT.name:
       return FCP_THRESHOLDS
-    case 'experimental_time_to_first_byte':
+    case AllowedMetrics.EXPERIMENTAL_TIME_TO_FIRST_BYTE.name:
       return TTFB_THRESHOLDS
     default:
       return { good: 0, poor: 0 }
@@ -79,8 +73,6 @@ export const transformPageInsights = (record: Record): Metric[] => {
   const metricsArray: Metric[] = []
   for (const [webVitalKey, webVital] of Object.entries(metrics)) {
     if ('fractions' in webVital) continue
-
-    console.log(webVitalKey)
 
     const value = parseFloat(String(webVital.percentiles.p75))
     const status = getStatus(value, getThresholds(webVitalKey))

@@ -1,9 +1,9 @@
 'use server'
 
 import { apiClient } from '@/services/apiClient'
-import { Metric, transformPageInsights } from '@/lib/helpers'
-import { PageInsightsResponse } from './types'
-import { AllowedMetrics } from './types'
+import { transformPageInsights } from '@/lib/helpers'
+import { PageInsightsResponse } from '@/types'
+import { AllowedMetrics, Metric } from '@/types'
 
 const apiKey = process.env.GOOGLE_CRUX_API_KEY
 const cruxEndpoint = process.env.GOOGLE_CRUX_API_ENDPOINT
