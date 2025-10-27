@@ -1,6 +1,8 @@
 # Web Report X
-
+<img width="1280" height="785" alt="image" src="https://github.com/user-attachments/assets/e24c0c86-8dd4-4c39-a7db-54488b3d07e4" />
 Web Report X is a tool to analyze and report Core Web Vitals metrics for any public website. It leverages the Chrome UX Report (CrUX) API to provide real-user experience data.
+
+[demo](https://vimeo.com/1130772957/82131bed5f?share=copy&fl=sv&fe=ci)
 
 ## Features
 
